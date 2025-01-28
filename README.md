@@ -59,6 +59,9 @@ This Pine Script is designed to provide a comprehensive trading system that inte
 - **Moving Averages**: Plots SMA and EMA lines on the chart.
 - **Final Signal**: Combines the normalized values of all indicators using the weighted scoring system to generate a final trading signal displayed in the compact table.
 
+![image](https://github.com/user-attachments/assets/421e312f-5427-4258-a091-cd79ebe20090)
+![image](https://github.com/user-attachments/assets/f19f74b7-fd3c-4fd6-aa66-11380c38e8f1)
+
 ## Example Usage
 
 To use this script, simply copy and paste it into the Pine Editor on TradingView. Adjust the input parameters as needed, and apply the script to your desired chart. The compact table will display real-time signals from each indicator, and the background color will help you quickly assess the market sentiment.
