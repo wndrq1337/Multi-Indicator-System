@@ -2,6 +2,8 @@
 
 This Pine Script is designed to provide a comprehensive trading system that integrates multiple technical indicators across different timeframes (15 minutes, 30 minutes, and 1 hour). The script includes Ichimoku Cloud, RSI, MACD, SMA, and EMA indicators, each of which can be customized based on the selected timeframe. Additionally, it incorporates a weighted scoring system to generate a final trading signal.
 
+![image](https://github.com/user-attachments/assets/d754653c-258f-4415-ae77-28eb26b849f5)
+
 ## Features
 
 - **Timeframe Adaptation**: Automatically adjusts parameters for Ichimoku, RSI, MACD, SMA, and EMA based on the selected timeframe (15M, 30M, or 1H).
