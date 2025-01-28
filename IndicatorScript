@@ -1,0 +1,148 @@
+//@version=5
+indicator("Multi-Indicator System [15M-30M-1H]", overlay=true, max_labels_count=500)
+
+//=== Настройки таймфрейма ===
+is_15m = timeframe.isintraday and timeframe.multiplier <= 15
+is_30m = timeframe.isintraday and timeframe.multiplier == 30
+is_1h = timeframe.isintraday and timeframe.multiplier >= 60 and timeframe.multiplier <= 60
+
+//=== Адаптированные параметры для всех ТФ ===
+// Ишимоку
+tenkan_len_15m = input.int(7, "Tenkan Length (15m)", minval=5, maxval=12)
+tenkan_len_30m = input.int(9, "Tenkan Length (30m)", minval=5, maxval=12)
+tenkan_len_1h = input.int(12, "Tenkan Length (1h)", minval=5, maxval=12)
+tenkan_len = is_15m ? tenkan_len_15m : is_30m ? tenkan_len_30m : is_1h ? tenkan_len_1h : 7
+
+kijun_len_15m = input.int(22, "Kijun Length (15m)", minval=20, maxval=30)
+kijun_len_30m = input.int(26, "Kijun Length (30m)", minval=20, maxval=30)
+kijun_len_1h = input.int(30, "Kijun Length (1h)", minval=20, maxval=30)
+kijun_len = is_15m ? kijun_len_15m : is_30m ? kijun_len_30m : is_1h ? kijun_len_1h : 22
+
+senkou_b_len_15m = input.int(44, "Senkou B Length (15m)", minval=40, maxval=60)
+senkou_b_len_30m = input.int(52, "Senkou B Length (30m)", minval=40, maxval=60)
+senkou_b_len_1h = input.int(60, "Senkou B Length (1h)", minval=40, maxval=60)
+senkou_b_len = is_15m ? senkou_b_len_15m : is_30m ? senkou_b_len_30m : is_1h ? senkou_b_len_1h : 44
+
+displacement = input.int(22, "Displacement", minval=20, maxval=30)
+
+// RSI
+rsi_length_15m = input.int(14, "RSI Length (15m)", minval=10, maxval=20)
+rsi_length_30m = input.int(14, "RSI Length (30m)", minval=10, maxval=20)
+rsi_length_1h = input.int(14, "RSI Length (1h)", minval=10, maxval=20)
+rsi_length = is_15m ? rsi_length_15m : is_30m ? rsi_length_30m : is_1h ? rsi_length_1h : 14
+
+rsi_overbought = input(65, "RSI Overbought")
+rsi_oversold = input(35, "RSI Oversold")
+
+// MACD
+macd_fast_15m = input.int(12, "MACD Fast (15m)", minval=10, maxval=18)
+macd_fast_30m = input.int(14, "MACD Fast (30m)", minval=10, maxval=18)
+macd_fast_1h = input.int(16, "MACD Fast (1h)", minval=10, maxval=18)
+macd_fast = is_15m ? macd_fast_15m : is_30m ? macd_fast_30m : is_1h ? macd_fast_1h : 12
+
+macd_slow_15m = input.int(24, "MACD Slow (15m)", minval=20, maxval=34)
+macd_slow_30m = input.int(28, "MACD Slow (30m)", minval=20, maxval=34)
+macd_slow_1h = input.int(32, "MACD Slow (1h)", minval=20, maxval=34)
+macd_slow = is_15m ? macd_slow_15m : is_30m ? macd_slow_30m : is_1h ? macd_slow_1h : 24
+
+macd_signal_15m = input.int(7, "MACD Signal (15m)", minval=5, maxval=12)
+macd_signal_30m = input.int(9, "MACD Signal (30m)", minval=5, maxval=12)
+macd_signal_1h = input.int(11, "MACD Signal (1h)", minval=5, maxval=12)
+macd_signal = is_15m ? macd_signal_15m : is_30m ? macd_signal_30m : is_1h ? macd_signal_1h : 7
+
+// Moving Averages
+sma_length_15m = input.int(50, "SMA Length (15m)", minval=40, maxval=80)
+sma_length_30m = input.int(60, "SMA Length (30m)", minval=40, maxval=80)
+sma_length_1h = input.int(70, "SMA Length (1h)", minval=40, maxval=80)
+sma_length = is_15m ? sma_length_15m : is_30m ? sma_length_30m : is_1h ? sma_length_1h : 50
+
+ema_length_15m = input.int(20, "EMA Length (15m)", minval=15, maxval=35)
+ema_length_30m = input.int(25, "EMA Length (30m)", minval=15, maxval=35)
+ema_length_1h = input.int(30, "EMA Length (1h)", minval=15, maxval=35)
+ema_length = is_15m ? ema_length_15m : is_30m ? ema_length_30m : is_1h ? ema_length_1h : 20
+
+//=== Логика индикаторов ===
+// Ишимоку
+tenkan = ta.sma((ta.highest(high, tenkan_len) + ta.lowest(low, tenkan_len)) / 2, 1)
+kijun = ta.sma((ta.highest(high, kijun_len) + ta.lowest(low, kijun_len)) / 2, 1)
+senkouA = (tenkan + kijun) / 2
+senkouB = ta.sma((ta.highest(high, senkou_b_len) + ta.lowest(low, senkou_b_len)) / 2, 1)
+senkouA_shifted = ta.valuewhen(bar_index >= displacement, senkouA, displacement)
+senkouB_shifted = ta.valuewhen(bar_index >= displacement, senkouB, displacement)
+
+// Определение положения цены относительно облака
+price_above_cloud = close > math.max(senkouA_shifted, senkouB_shifted)
+price_below_cloud = close < math.min(senkouA_shifted, senkouB_shifted)
+price_inside_cloud = not price_above_cloud and not price_below_cloud
+
+// Цвет фона
+background_color = price_above_cloud ? color.new(color.green, 90) : 
+                   price_below_cloud ? color.new(color.red, 90) : 
+                   color.new(color.orange, 90)
+
+// Применение фона к графику
+bgcolor(background_color, title="Background Color")
+
+// Отрисовка линий облака
+plot(senkouA_shifted, "Senkou A", color=color.blue)
+plot(senkouB_shifted, "Senkou B", color=color.purple)
+fill(plot(senkouA_shifted), plot(senkouB_shifted), color=color.new(color.gray, 70), title="Ichimoku Cloud")
+
+// RSI
+rsi = ta.rsi(close, rsi_length)
+rsi_normalized = math.min(math.max((rsi - rsi_oversold) / (rsi_overbought - rsi_oversold), 0), 1)
+
+// MACD
+[macdLine, signalLine, _] = ta.macd(close, macd_fast, macd_slow, macd_signal)
+macd_normalized = (macdLine - signalLine) / (ta.highest(macdLine, 50) - ta.lowest(macdLine, 50))
+
+// Moving Averages
+sma = ta.sma(close, sma_length)
+ema = ta.ema(close, ema_length)
+
+//=== Весовая система ===
+weights = array.from(input.float(0.35, "Ichimoku Weight", step=0.05), input.float(0.25, "RSI Weight", step=0.05), input.float(0.20, "MACD Weight", step=0.05), input.float(0.10, "SMA Weight", step=0.05), input.float(0.10, "EMA Weight", step=0.05))
+
+//=== Компактная таблица ===
+var table tbl = table.new(position.top_right, 7, 2, border_width=1)
+if barstate.islast
+    // Заголовки
+    table.cell(tbl, 0, 0, "Indicator", bgcolor=color.blue)
+    table.cell(tbl, 0, 1, "Signal", bgcolor=color.blue)
+    
+    // Ишимоку
+    table.cell(tbl, 1, 0, "Ichimoku", bgcolor=price_above_cloud ? color.new(color.green, 85) : price_below_cloud ? color.new(color.red, 85) : color.new(color.orange, 85))
+    table.cell(tbl, 1, 1, price_above_cloud ? "BULL" : price_below_cloud ? "BEAR" : "NEUTRAL", bgcolor=price_above_cloud ? color.new(color.green, 85) : price_below_cloud ? color.new(color.red, 85) : color.new(color.orange, 85))
+    
+    // RSI
+    rsi_color = rsi > rsi_overbought ? color.red : rsi < rsi_oversold ? color.green : color.orange
+    table.cell(tbl, 2, 0, "RSI", bgcolor=rsi_color)
+    table.cell(tbl, 2, 1, str.format("{0,number,#.##}", rsi), bgcolor=rsi_color)
+    
+    // MACD
+    macd_color = macdLine > signalLine ? color.green : color.red
+    table.cell(tbl, 3, 0, "MACD", bgcolor=macd_color)
+    table.cell(tbl, 3, 1, macdLine > signalLine ? "BULL" : "BEAR", bgcolor=macd_color)
+    
+    // SMA
+    sma_color = close > sma ? color.green : color.red
+    table.cell(tbl, 4, 0, "SMA", bgcolor=sma_color)
+    table.cell(tbl, 4, 1, close > sma ? "BULL" : "BEAR", bgcolor=sma_color)
+    
+    // EMA
+    ema_color = close > ema ? color.green : color.red
+    table.cell(tbl, 5, 0, "EMA", bgcolor=ema_color)
+    table.cell(tbl, 5, 1, close > ema ? "BULL" : "BEAR", bgcolor=ema_color)
+    
+    // Итоговый сигнал
+    final_signal = array.sum(array.from((price_above_cloud ? 1 : price_below_cloud ? 0 : 0.5) * array.get(weights, 0), rsi_normalized * array.get(weights, 1), macd_normalized * array.get(weights, 2), (close > sma ? 1 : 0) * array.get(weights, 3), (close > ema ? 1 : 0) * array.get(weights, 4)))
+    
+    final_color = final_signal > 0.6 ? color.green : final_signal < 0.4 ? color.red : color.orange
+    table.cell(tbl, 6, 0, "Final Signal", bgcolor=final_color)
+    table.cell(tbl, 6, 1, final_signal > 0.6 ? "STRONG LONG" : final_signal < 0.4 ? "STRONG SHORT" : "NEUTRAL", bgcolor=final_color)
+
+//=== Визуализация на графике ===
+plot(senkouA_shifted, "Senkou A", color=color.blue)
+plot(senkouB_shifted, "Senkou B", color=color.purple)
+plot(ema, "EMA", color=color.orange)
+plot(sma, "SMA", color=color.navy)
